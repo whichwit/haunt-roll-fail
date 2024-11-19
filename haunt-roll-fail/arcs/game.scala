@@ -242,7 +242,7 @@ case object LoyalMarines      extends GuildCard("bc15", "Loyal Marines",      We
 case object LatticeSpies      extends GuildCard("bc16", "Lattice Spies",      Psionic,  2)
 case object Farseers          extends GuildCard("bc17", "Farseers",           Psionic,  2)
 case object SecretOrder       extends GuildCard("bc18", "Secret Order",       Psionic,  2)
-case object LoyalEmpaths      extends GuildCard("bc19", "Loyal Empaths",      Psionic,  2) with LoyalGuild
+case object LoyalEmpaths      extends GuildCard("bc19", "Loyal Empaths",      Psionic,  3) with LoyalGuild
 case object SilverTongues     extends GuildCard("bc20", "Silver Tongues",     Psionic,  2)
 case object LoyalKeepers      extends GuildCard("bc21", "Loyal Keepers",      Relic,    3) with LoyalGuild
 case object SwornGuardians    extends GuildCard("bc22", "Sworn Guardians",    Relic,    1)
@@ -298,6 +298,8 @@ trait LeaderEffect extends Effect with Elementary {
     def elem = name.styled(styles.title).hl
 }
 
+case object Beloved extends LeaderEffect
+case object Just extends LeaderEffect
 case object Attuned extends LeaderEffect
 case object Cryptic extends LeaderEffect
 case object Bold extends LeaderEffect
@@ -308,7 +310,7 @@ abstract class Leader(val id : String, val name : String, val effects : $[Effect
     def elem = name.styled(styles.title).hl
 }
 
-case object Elder         extends Leader("leader01", "Elder",         $, $, $, $, $)
+case object Elder         extends Leader("leader01", "Elder",         $(Beloved, Just), $(Relic, Material), $(City, Ship, Ship, Ship), $(Starport, Ship, Ship, Ship), $(Ship, Ship))
 case object Mystic        extends Leader("leader02", "Mystic",        $(Attuned, Cryptic), $(Psionic, Relic), $(City, Ship, Ship, Ship), $(Starport, Ship, Ship, Ship), $(Ship, Ship))
 case object FuelDrinker   extends Leader("leader03", "Fuel-Drinker",  $(), $(Fuel, Fuel), $(City, Ship, Ship, Ship), $(Starport, Ship, Ship, Ship), $(Ship, Ship))
 case object Upstart       extends Leader("leader04", "Upstart",       $(), $(Psionic, Material), $(City, Ship, Ship, Ship, Ship), $(Starport, Ship, Ship, Ship), $(Ship, Ship))
@@ -345,7 +347,7 @@ object Leaders {
         Quartermaster ,
     )
 
-    def preset1 = $(Mystic, FuelDrinker, Upstart, Rebel, Noble, Demagogue)
+    def preset1 = $(Mystic, FuelDrinker, Upstart, Rebel, Noble, Demagogue, Elder)
 }
 
 
@@ -1937,6 +1939,7 @@ class Game(val setup : $[Faction], val options : $[Meta.O]) extends BaseGame wit
             case RansackMainAction(f, e, then) =>
                 Ask(f).group("Ransack".hl)
                     .each(market.%(c => Influence(c).exists(_.faction == e)))(c => RansackAction(f, c, then).as(c))
+                    .!(f.can(Beloved), "Beloved")
                     .needOk
                     .bail(then)
 
@@ -2626,6 +2629,8 @@ class Game(val setup : $[Faction], val options : $[Meta.O]) extends BaseGame wit
 
                             first.foreach { f =>
                                 val p = high + (f.pooled(City) < 2).??(2) + (f.pooled(City) < 1).??(3)
+                                if (f.can(Just) && ambition == Tycoon)
+                                    p = low
                                 f.power += p
                                 f.log("scored first place", ambition, "for", p.power)
                             }
@@ -2633,6 +2638,8 @@ class Game(val setup : $[Faction], val options : $[Meta.O]) extends BaseGame wit
                             if (low > 0)
                             second.foreach { f =>
                                 val p = low
+                                if (f.can(Just) && ambition == Tycoon)
+                                    p = 0
                                 f.power += p
                                 f.log("scored second place", ambition, "for", p.power)
                             }
